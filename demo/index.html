@@ -1,75 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>DT</title>
-    <style>
-        html, body{
-            padding: 0;
-            margin: 0;
-        }
-        body{
-            padding: 30px;
-            min-width: 650px;
-        }
-        .doms-cont{
-            justify-content: center;
-            display: flex;
-            margin-bottom: 30px;
-        }
-        .dom-cont{
-            min-width: 200px;
-            height: 300px;
-            border-top: 1px solid gray;
-            border-bottom: 1px solid gray;
-            border-left: 1px solid gray;
-        }
-        .dom-cont:last-of-type{
-            border-right: 1px solid gray;
-        }
-        .dc-title{
-            text-align: center;
-            height: 40px;
-            line-height: 40px;
-            border-bottom: 1px solid gray;
-        }
-        .buttons{
-            justify-content: space-evenly;
-            display: flex;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>AVD</title>
+  <style>
+    html,
+    body {
+      padding: 0;
+      margin: 0;
+    }
+
+    body {
+      padding: 30px;
+      min-width: 650px;
+    }
+
+    .doms-cont {
+      justify-content: center;
+      display: flex;
+      margin-bottom: 30px;
+    }
+
+    .dom-cont {
+      min-width: 200px;
+      height: 300px;
+      border-top: 1px solid gray;
+      border-bottom: 1px solid gray;
+      border-left: 1px solid gray;
+    }
+
+    .dom-cont:last-of-type {
+      border-right: 1px solid gray;
+    }
+
+    .dc-title {
+      text-align: center;
+      height: 40px;
+      line-height: 40px;
+      border-bottom: 1px solid gray;
+    }
+
+    .buttons {
+      justify-content: space-evenly;
+      display: flex;
+    }
+
+    .marginLeft10 {
+      margin-left: 10px;
+    }
+    .colorRed {
+      color: red;
+    }
+  </style>
 </head>
+
 <body>
-    <div class='doms-cont'>
-        <div class='dom-cont'>
-            <div class='dc-title'>真实节点</div>
-            <div id="real-container">
-                <p>Real DOM</p>
-                <div>cannot update</div>
-                <ul>
-                    <li class="item">Item 1</li>
-                    <li class="item">Item 2</li>
-                    <li class="item">Item 3</li>
-                </ul>
-            </div>
-        </div>
-        <div class='dom-cont'>
-            <div class='dc-title'>虚拟节点</div>
-            <div id='virtualDom'></div>
-        </div>
-        <div class='dom-cont'>
-            <div class='dc-title'>新的虚拟节点</div>
-            <div id='newVirtualDom'></div>
-        </div>
+  <div class='doms-cont'>
+    <div class='dom-cont'>
+      <div class='dc-title'>真实DOM</div>
+      <div id="real-container">
+        <p>Real DOM</p>
+        <div>cannot update</div>
+        <ul>
+          <li class="item">Item 1</li>
+          <li class="item">Item 2</li>
+          <li class="item">Item 3</li>
+        </ul>
+      </div>
     </div>
-    <div class='buttons'>
-        <button onclick="renderDom()">渲染虚拟节点</button>
-        <button onclick="renderNewDom()">渲染新的虚拟节点</button>
-        <button onclick="diffDom()">Diff两者(结果在控制台)</button>
+    <div class='dom-cont'>
+      <div class='dc-title'>虚拟DOM1</div>
+      <div id='virtualDom'></div>
     </div>
-    <script src="../dist/avd.js"></script>
-    <script src="./index.js"></script>
+    <div class='dom-cont'>
+      <div class='dc-title'>虚拟DOM2</div>
+      <div id='newVirtualDom'></div>
+    </div>
+  </div>
+  <div class='buttons'>
+    <button onclick="renderDom()">渲染虚拟DOM1</button>
+    <button onclick="renderDom2()">随机渲染虚拟DOM2</button>
+    <button onclick="diffDom()">Diff两者(结果在控制台)</button>
+    <button onclick="applyDiffResult()">对虚拟DOM1应用diff结果</button>
+  </div>
+  <script src="../dist/avd.js"></script>
+  <script src="./index.js"></script>
 </body>
+
 </html>
