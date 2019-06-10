@@ -4,16 +4,82 @@
 (function (global) {
   "use strict";
 
+function isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+
+function _construct(Parent, args, Class) { if (isNativeReflectConstruct()) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Function.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
 /* eslint-disable no-unused-vars */
-// 预期返回两个节点的变化了的属性
-// TODO: 怎么处理事件,这里应该不考虑事件
+// 为了拿到真的对象
+// _NodeGetter保存一个对象obj和一个对象的key
+// 通过_NodeGetter修改obj[key]的时候可以直接修改原来obj对象的属性
+// e.g.
+// arr = [1,2];
+// ng = _NodeGetter([1,2],0);
+// ng.value = 2;
+// 则有arr => [2,2]
+var _NodeGetter =
+/*#__PURE__*/
+function () {
+  function _NodeGetter(source, info) {
+    _classCallCheck(this, _NodeGetter);
+
+    this.source = source;
+    this.info = info;
+  }
+
+  _createClass(_NodeGetter, [{
+    key: "value",
+    get: function get() {
+      if (this.info !== undefined) {
+        return this.source[this.info];
+      }
+
+      return this.source;
+    },
+    set: function set(newVlaue) {
+      if (this.info !== undefined) {
+        this.source[this.info] = newVlaue;
+      } else {
+        this.source = newVlaue;
+      }
+    }
+  }]);
+
+  return _NodeGetter;
+}(); // NodeGetter()和new NodeGetter()效果一样
+// eslint-disable-next-line no-unused-vars
+
+
+var NodeGetter = new Proxy(_NodeGetter, {
+  apply: function apply(target, thisArg, argumentsList) {
+    // eslint-disable-next-line
+    return _construct(target, _toConsumableArray(argumentsList));
+  }
+}); // 预期返回两个节点的变化了的属性
+// 如果属性相同，那么返回null
+
 function diffProps(oldNode, newNode) {
   var oldProps = oldNode.props;
-  var newProps = newNode.props; // console.log('oldProps',oldProps)
-  // console.log('newProps',newProps)
-
+  var newProps = newNode.props;
   var propsPatchs = {};
   var isSame = true; // 遍历旧的，找到修改了的
+  // 删掉的也属于修改了的
 
   Object.keys(oldProps).forEach(function (key) {
     if (newProps[key] !== oldProps[key]) {
@@ -179,58 +245,7 @@ function diffArr(oldArr, newArr) {
 
 
 function diff(oldTree, newTree) {
-  var num = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
-  var patchs = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
-
-  // 判断节点类型是否一致
-  if (oldTree.tagName !== newTree.tagName) {
-    // eslint-disable-next-line
-    patchs[num] = {
-      type: 'REPLACE',
-      node: newTree
-    };
-  } else {
-    var propsPatchs = diffProps(oldTree, newTree);
-
-    if (propsPatchs) {
-      // eslint-disable-next-line
-      patchs[num] = {
-        type: 'PROPS',
-        props: propsPatchs
-      };
-    } // eslint-disable-next-line
-
-
-    patchs = diffArr(oldTree.children, newTree.children, num, patchs);
-  }
-
-  return patchs;
-} // 为了拿到真的对象
-
-
-function NodeGetter(source, info) {
-  if (!(this instanceof NodeGetter)) {
-    return new NodeGetter(source, info);
-  }
-
-  this.source = source;
-  this.info = info;
-  Object.defineProperty(this, 'value', {
-    get: function get() {
-      if (this.info !== undefined) {
-        return this.source[this.info];
-      }
-
-      return this.source;
-    },
-    set: function set(newVlaue) {
-      if (this.info !== undefined) {
-        this.source[this.info] = newVlaue;
-      } else {
-        this.source = newVlaue;
-      }
-    }
-  });
+  return diffArr([oldTree], [newTree], -1);
 } // 为虚拟DOM构建索引
 // 为了简单先放到oldTree对象上
 
@@ -314,72 +329,113 @@ function applyDiff(oldTree, patchs) {
 }
 "use strict";
 
-function Element(tagName, props, children) {
-  var _this = this;
+function isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
 
-  // 让Element(...) 和 new Element(...)有一样的行为
-  if (!(this instanceof Element)) {
-    return new Element(tagName, props, children);
-  }
+function _construct(Parent, args, Class) { if (isNativeReflectConstruct()) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Function.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
 
-  this.tagName = tagName;
-  this.props = props || {};
-  this.children = children || [];
-  this.key = props ? props.key : undefined;
-  this.isText = false;
-  this.text = '';
-  var count = 0;
-  this.children.forEach(function (child, index) {
-    if (child instanceof Element) {
-      count += child.count;
-    } else {
-      var textNode = new Element();
-      textNode.isText = true;
-      textNode.text = child;
-      _this.children[index] = textNode;
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+var _Element =
+/*#__PURE__*/
+function () {
+  function _Element(tagName, props, children) {
+    var _this = this;
+
+    _classCallCheck(this, _Element);
+
+    this.tagName = tagName; // 对应的dom节点标签
+
+    this.props = props || {}; // 属性
+
+    this.children = children || []; // 孩子节点
+
+    this.key = props ? props.key : undefined; // 备用，diff使用，目前还没用到
+
+    this.isText = false; // 是否是纯文本节点
+
+    this.text = ''; // 如果是纯文本节点，text存入文本内容
+    // init
+
+    var count = 0;
+    this.children.forEach(function (child, index) {
+      if (child instanceof _Element) {
+        count += child.count;
+      } else {
+        var textNode = new _Element();
+        textNode.isText = true;
+        textNode.text = child;
+        _this.children[index] = textNode;
+      }
+
+      count += 1;
+    });
+    this.count = count; // count的意思是，嗯此节点孩子节点等等总节点数
+  } // 预期返回结果是一个HTML DOM节点对象
+  // 如果children有内容，按顺序将child渲染并添加到父节点内部
+
+
+  _createClass(_Element, [{
+    key: "render",
+    value: function render() {
+      var _this2 = this;
+
+      if (this.isText) {
+        return document.createTextNode(this.text);
+      }
+
+      var el = document.createElement(this.tagName);
+      this.$el = el;
+      var props = this.props;
+      Object.keys(props).forEach(function (propName) {
+        _this2.setAttr(propName, props[propName]);
+      });
+      this.children.forEach(function (child) {
+        var childEl = child.render();
+        el.appendChild(childEl);
+      });
+      return el;
+    } // 设置当$el的属性
+
+  }, {
+    key: "setAttr",
+    value: function setAttr(name, value) {
+      if (typeof value === 'function' && name.startsWith('@')) {
+        // 绑定事件
+        var evtName = name.slice(1); // 可能需要判断是不是原生事件之类的，这里还没有自定义组件所以只有原生事件
+        // el.removeEventListener(evtName); // 移除所有的原绑定事件，嗯。。。
+
+        this.$el.addEventListener(evtName, value);
+      } else {
+        this.$el.setAttribute(name, value);
+      }
     }
+  }]);
 
-    count += 1;
-  });
-  this.count = count; // count的意思是，嗯此节点孩子节点等等总节点数
-} // 脑补的
+  return _Element;
+}(); // 使得Element()和new Element()效果一样
+// eslint-disable-next-line no-unused-vars
 
 
-function setAttr(el, name, value) {
-  if (typeof value === 'function' && name.startsWith('@')) {
-    // 绑定事件
-    var evtName = name.slice(1); // 可能需要判断是不是原生事件之类的，这里还没有自定义组件所以只有原生事件
-    // el.removeEventListener(evtName); // 移除所有的原绑定事件，嗯。。。
-
-    el.addEventListener(evtName, value);
-  } else {
-    el.setAttribute(name, value);
+var Element = new Proxy(_Element, {
+  apply: function apply(target, thisArg, argumentsList) {
+    // eslint-disable-next-line
+    return _construct(target, _toConsumableArray(argumentsList));
   }
-} // 预期返回结果是一个HTML DOM节点对象
-// 如果children有内容，按顺序将child渲染并添加到父节点内部
-
-
-Element.prototype.render = function render() {
-  if (this.isText) {
-    return document.createTextNode(this.text);
-  }
-
-  var el = document.createElement(this.tagName);
-  var props = this.props;
-  Object.keys(props).forEach(function (propName) {
-    setAttr(el, propName, props[propName]);
-  });
-  this.children.forEach(function (child) {
-    var childEl = child.render();
-    el.appendChild(childEl);
-  });
-  this.$el = el;
-  return el;
-};
-
-Element.prototype.setAttr = function eSetAttr(name, value) {
-  setAttr(this.$el, name, value);
-};
+});
   global.avd = {
     diff: diff,
     applyDiff: applyDiff,
