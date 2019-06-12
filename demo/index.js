@@ -92,11 +92,11 @@ function applyDiffResult(){
   }
   // 这里操作原来的虚拟dom，应用diff的结果
   applyDiff(globalData.tree, globalData.diffResult);
-  globalData.diffResult = null; // 避免多次应用同一个diffResult
-  const root = document.getElementById('virtualDom');
-  if (root.firstElementChild) {
-    root.firstElementChild.remove();
-  }
-  // console.log('globalData.tree', globalData.tree);
-  root.appendChild(globalData.tree.render());
+  // globalData.diffResult = null; // 避免多次应用同一个diffResult
+  // const root = document.getElementById('virtualDom');
+  // if (root.firstElementChild) {
+  //   root.firstElementChild.remove();
+  // }
+  // // console.log('globalData.tree', globalData.tree);
+  // root.appendChild(globalData.tree.render());
 }

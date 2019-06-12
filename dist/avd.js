@@ -112,6 +112,7 @@ function applyProps(node, props) {
       propNames.forEach(function (propName) {
         // eslint-disable-next-line
         node.props[propName] = props[propName];
+        node.setAttr(propName, props[propName]);
       });
     }
   }
@@ -196,7 +197,7 @@ function diffArr(oldArr, newArr) {
           patchs[_eleKey].moves.push({
             index: index,
             type: 0,
-            node: newItem
+            node: oldItem
           });
         } else {
           // eslint-disable-next-line
@@ -291,12 +292,24 @@ function applyDiff(oldTree, patchs) {
         var patch = patchs[key];
 
         if (patch.type === 'REPLACE') {
-          // eslint-disable-next-line
+          var oldEl = oldTree.indexs[key].value.$el;
+
+          if (oldEl) {
+            oldEl.parentNode.replaceChild(patch.node.render(), oldEl);
+          } // eslint-disable-next-line
+
+
           oldTree.indexs[key].value = patch.node;
         } else if (patch.type === 'PROPS') {
           applyProps(oldTree.indexs[key].value, patch.props);
         } else if (patch.type === 'TEXT') {
-          // eslint-disable-next-line
+          var _oldEl = oldTree.indexs[key].value.$el;
+
+          if (_oldEl) {
+            _oldEl.nodeValue = patch.text;
+          } // eslint-disable-next-line
+
+
           oldTree.indexs[key].value.text = patch.text; // 这个不行吧。。。
         } else if (patch.type === 'REORDER') {
           // TO PERF
@@ -309,10 +322,15 @@ function applyDiff(oldTree, patchs) {
           }).forEach(function (move) {
             // console.log('remove index', move.index);
             var source = oldTree.indexs[key].source;
+
+            if (move.node && move.node.$el && move.node.$el.parentNode) {
+              move.node.$el.parentNode.removeChild(move.node.$el);
+            }
+
             source.splice(source.findIndex(function (a) {
               return a === move.node;
             }), 1);
-          }); // 先补充
+          }); // 补充
 
           patch.moves.filter(function (a) {
             return a.type === 1;
@@ -320,6 +338,14 @@ function applyDiff(oldTree, patchs) {
             return a.index > b.index ? 1 : -1;
           }).forEach(function (move) {
             // console.log('append index', move.index);
+            var _oldTree$indexs$key = oldTree.indexs[key],
+                source = _oldTree$indexs$key.source,
+                value = _oldTree$indexs$key.value;
+
+            if (source && source.length > 0) {
+              source[0].$el.parentNode.appendChild(move.node.render());
+            }
+
             oldTree.indexs[key].source.push(move.node);
           });
         }
@@ -394,7 +420,10 @@ function () {
       var _this2 = this;
 
       if (this.isText) {
-        return document.createTextNode(this.text);
+        var _el = document.createTextNode(this.text);
+
+        this.$el = _el;
+        return _el;
       }
 
       var el = document.createElement(this.tagName);
