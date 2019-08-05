@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-const { Element, diff, applyDiff } = window.avd;
+const { KElement, diff, applyDiff } = window.avd;
 const globalData = {
   tree: null,
 };
@@ -7,14 +7,14 @@ const globalData = {
 // 虚拟节点
 function getVirtualDom() {
   // 尝试下
-  const tree = Element('div', { class: 'virtual-container' }, [
-    Element('p', {}, ['Virtual DOM']),
-    Element('div', {}, ['before update']),
-    Element('ul', {}, [
-      Element('li', { class: 'item' }, ['Item 1']),
-      Element('li', { class: 'item' }, ['Item 2']),
-      Element('li', { class: 'item' }, ['Item 3']),
-      Element('li', { class: 'item' }, ['Item 4']),
+  const tree = KElement('div', { class: 'virtual-container' }, [
+    KElement('p', {}, ['Virtual DOM']),
+    KElement('div', {}, ['before update']),
+    KElement('ul', {}, [
+      KElement('li', { class: 'item' }, ['Item 1']),
+      KElement('li', { class: 'item' }, ['Item 2']),
+      KElement('li', { class: 'item' }, ['Item 3']),
+      KElement('li', { class: 'item' }, ['Item 4']),
     ]),
   ]);
   return tree;
@@ -23,9 +23,9 @@ function getVirtualDom() {
 // 新的虚拟节点
 function getVirtualDom2() {
   const ulChildren = [
-    Element('li', { class: 'item colorRed' }, ['Item 1']),
-    Element('li', { class: 'item' }, [
-      Element('button', {
+    KElement('li', { class: 'item colorRed' }, ['Item 1']),
+    KElement('li', { class: 'item' }, [
+      KElement('button', {
         '@click': function clickme() { console.log('u click me'); },
       }, ['click me']),
     ]),
@@ -35,16 +35,16 @@ function getVirtualDom2() {
   // 使diff结果多样
   if (Math.random() > 0.5) {
     ulChildren.push(
-      Element('li', { class: 'item' }, ['Item 3']),
-      Element('li', { class: 'item' }, ['Item 4']),
-      Element('li', { class: 'item' }, ['Item 5']),
+      KElement('li', { class: 'item' }, ['Item 3']),
+      KElement('li', { class: 'item' }, ['Item 4']),
+      KElement('li', { class: 'item' }, ['Item 5']),
     );
   }
   // 尝试下
-  const newTree = Element('div', { class: 'virtual-container' }, [
-    Element('h3', {}, ['Virtual DOM']),
-    Element('div', {}, ['after update']),
-    Element('ul', { class: 'marginLeft10' }, ulChildren),
+  const newTree = KElement('div', { class: 'virtual-container' }, [
+    KElement('h3', {}, ['Virtual DOM']),
+    KElement('div', {}, ['after update']),
+    KElement('ul', { class: 'marginLeft10' }, ulChildren),
   ]);
   globalData.diffResult = null;
   return newTree;

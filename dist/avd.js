@@ -84,14 +84,14 @@ function diffProps(oldNode, newNode) {
   Object.keys(oldProps).forEach(function (key) {
     if (newProps[key] !== oldProps[key]) {
       isSame = false;
-      propsPatchs[key] = newProps[key];
+      propsPatchs[key] = [oldProps[key], newProps[key]];
     }
   }); // 遍历新的，找到新的属性
 
   Object.keys(newProps).forEach(function (key) {
     if (!Object.prototype.hasOwnProperty.call(oldProps, key)) {
       isSame = false;
-      propsPatchs[key] = newProps[key];
+      propsPatchs[key] = [null, newProps[key]];
     }
   });
   return isSame ? null : propsPatchs;
@@ -111,8 +111,8 @@ function applyProps(node, props) {
     if (propNames.length > 0) {
       propNames.forEach(function (propName) {
         // eslint-disable-next-line
-        node.props[propName] = props[propName];
-        node.setAttr(propName, props[propName]);
+        node.props[propName] = props[propName][1];
+        node.setAttr(propName, props[propName][1], props[propName][0]);
       });
     }
   }
@@ -307,10 +307,7 @@ function applyDiff(oldTree, patchs) {
 
           if (_oldEl) {
             _oldEl.nodeValue = patch.text;
-          } // eslint-disable-next-line
-
-
-          oldTree.indexs[key].value.text = patch.text; // 这个不行吧。。。
+          }
         } else if (patch.type === 'REORDER') {
           // TO PERF
           // 这里写的有点奇怪，像是在强行使用REORDER
@@ -375,6 +372,85 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
+/* eslint-disable no-undef */
+// 自定义组件
+var _Component =
+/*#__PURE__*/
+function () {
+  function _Component(props) {
+    _classCallCheck(this, _Component);
+
+    this.state = {};
+    this.props = props;
+    this.preRendered = null;
+  } // may partly update
+
+
+  _createClass(_Component, [{
+    key: "setState",
+    value: function setState(newState) {
+      Object.assign(this.state, newState);
+      var result = diff(this.preRendered, this.render());
+      applyDiff(this.preRendered, result);
+    } // mount rendered content to el
+    // mount just called once
+
+  }, {
+    key: "mount",
+    value: function mount(el) {
+      if (el.firstElementChild) {
+        el.firstElementChild.remove();
+      }
+
+      this.preRendered = this.render();
+
+      if (this.preRendered) {
+        el.appendChild(this.preRendered.render());
+      }
+    } // override this
+
+  }, {
+    key: "render",
+    value: function render() {
+      return null;
+    }
+  }]);
+
+  return _Component;
+}(); // 使得Element()和new Element()效果一样
+// eslint-disable-next-line no-unused-vars
+
+
+var KComponent = new Proxy(_Component, {
+  apply: function apply(target, thisArg, argumentsList) {
+    // eslint-disable-next-line
+    return _construct(target, _toConsumableArray(argumentsList));
+  }
+});
+"use strict";
+
+function isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+
+function _construct(Parent, args, Class) { if (isNativeReflectConstruct()) { _construct = Reflect.construct; } else { _construct = function _construct(Parent, args, Class) { var a = [null]; a.push.apply(a, args); var Constructor = Function.bind.apply(Parent, a); var instance = new Constructor(); if (Class) _setPrototypeOf(instance, Class.prototype); return instance; }; } return _construct.apply(null, arguments); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance"); }
+
+function _iterableToArray(iter) { if (Symbol.iterator in Object(iter) || Object.prototype.toString.call(iter) === "[object Arguments]") return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = new Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+/* eslint-disable no-undef */
+// 提供类或者对象到html标签的映射关系
 var _Element =
 /*#__PURE__*/
 function () {
@@ -400,6 +476,8 @@ function () {
     this.children.forEach(function (child, index) {
       if (child instanceof _Element) {
         count += child.count;
+      } else if (child instanceof _Component) {
+        _this.children[index] = child.render();
       } else {
         var textNode = new _Element();
         textNode.isText = true;
@@ -433,19 +511,30 @@ function () {
         _this2.setAttr(propName, props[propName]);
       });
       this.children.forEach(function (child) {
-        var childEl = child.render();
-        el.appendChild(childEl);
+        var childEl = child && child.render();
+
+        if (childEl) {
+          el.appendChild(childEl);
+        }
       });
       return el;
     } // 设置当$el的属性
 
   }, {
     key: "setAttr",
-    value: function setAttr(name, value) {
+    value: function setAttr(name, value, preValue) {
       if (typeof value === 'function' && name.startsWith('@')) {
         // 绑定事件
         var evtName = name.slice(1); // 可能需要判断是不是原生事件之类的，这里还没有自定义组件所以只有原生事件
-        // el.removeEventListener(evtName); // 移除所有的原绑定事件，嗯。。。
+        // if (this.$el.parentNode) {
+        //   const elClone = this.$el.cloneNode(true);
+        //   this.$el.parentNode.replaceChild(elClone, this.$el);
+        //   this.$el = elClone;
+        // }
+
+        if (preValue) {
+          this.$el.removeEventListener(evtName, preValue);
+        }
 
         this.$el.addEventListener(evtName, value);
       } else {
@@ -459,7 +548,7 @@ function () {
 // eslint-disable-next-line no-unused-vars
 
 
-var Element = new Proxy(_Element, {
+var KElement = new Proxy(_Element, {
   apply: function apply(target, thisArg, argumentsList) {
     // eslint-disable-next-line
     return _construct(target, _toConsumableArray(argumentsList));
@@ -468,6 +557,7 @@ var Element = new Proxy(_Element, {
   global.avd = {
     diff: diff,
     applyDiff: applyDiff,
-    Element: Element
+    KElement: KElement,
+    KComponent: KComponent
   };
 })(window);
