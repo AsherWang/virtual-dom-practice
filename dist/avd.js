@@ -303,9 +303,11 @@ function applyDiff(oldTree, patchs) {
         } else if (patch.type === 'PROPS') {
           applyProps(oldTree.indexs[key].value, patch.props);
         } else if (patch.type === 'TEXT') {
-          var _oldEl = oldTree.indexs[key].value.$el;
+          var oldNode = oldTree.indexs[key].value;
+          var _oldEl = oldNode.$el;
 
           if (_oldEl) {
+            oldNode.text = patch.text;
             _oldEl.nodeValue = patch.text;
           }
         } else if (patch.type === 'REORDER') {
